@@ -1,4 +1,4 @@
-package com.candidate.exception;
+c                                                                                                                                                                                                                                                                                                                                                                jk iiiiiiii....package com.candidate.exception;
 
 public class AllExceptionDTO {
 
@@ -48,7 +48,7 @@ public class AllExceptionDTO {
 
 		super();
 
-// TODO Auto-generated constructor stub
+
 
 	}
 
@@ -64,10 +64,5 @@ public class AllExceptionDTO {
 
 	}
 
-	public void setPublisherInput(String string) {
-
-// TODO Auto-generated method stub
-
-	}
 
 }

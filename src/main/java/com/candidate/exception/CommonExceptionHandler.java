@@ -12,14 +12,14 @@ public class CommonExceptionHandler {
 
 	@ExceptionHandler
 	public ResponseEntity<AllExceptionDTO> candidate(javax.persistence.EntityNotFoundException e) {
+	    AllExceptionDTO dto = new AllExceptionDTO();
+	    dto.setMsg(e.getLocalizedMessage());
+	    dto.setCandidateInput(e.getLocalizedMessage());
+	    dto.setDateAndTime(LocalDateTime.now().toString());
 
-		AllExceptionDTO dto = new AllExceptionDTO();
-
-		dto.setMsg(e.getLocalizedMessage());
-		dto.setCandidateInput(e.getLocalizedMessage().toString());
-		dto.setDateAndTime(LocalDateTime.now().toString());
-
-		return new ResponseEntity<AllExceptionDTO>(dto, HttpStatus.BAD_REQUEST);
+	    return new ResponseEntity<>(dto, HttpStatus.BAD_REQUEST);
 	}
+
+
 
 }

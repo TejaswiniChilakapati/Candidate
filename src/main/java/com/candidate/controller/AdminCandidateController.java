@@ -1,7 +1,7 @@
 package com.candidate.controller;
 
+import java.util.ArrayList;
 import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,8 +17,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestTemplate;
 
 import com.candidate.entity.Candidate;
+import com.candidate.exception.NullException;
+import com.candidate.model.RequiredResponse;
+import com.candidate.model.Voter;
+import com.candidate.pojo.AddCandidateRequest;
+import com.candidate.pojo.UpdateCandidateRequest;
+import com.candidate.repository.CandidateRepository;
 import com.candidate.service.CandidateService;
 
 @RestController
@@ -27,46 +34,54 @@ import com.candidate.service.CandidateService;
 public class AdminCandidateController {
 	@Autowired
 	CandidateService candidateService;
+	@Autowired
+	CandidateRepository candidateRepository;
 
-	private final Logger mylogs = LoggerFactory.getLogger(this.getClass());
+	@Autowired
+	RestTemplate restTemplate;
 
-	private String searchPartyname;
+	private static final Logger logger = LoggerFactory.getLogger(AdminCandidateController.class);
 
 	// localhost:8888/admin/addCandidate
 	@PostMapping("/addCandidate")
-	public ResponseEntity<Candidate> addCandidate(@RequestBody Candidate candidate) throws Exception {
+	public ResponseEntity<Candidate> addCandidate(@RequestBody AddCandidateRequest request) throws NullException {
+		Candidate candidate = new Candidate();
+		candidate.setCandidateName(request.getCandidateName());
+		candidate.setPartyName(request.getPartyName());
+		candidate.setConstituency(request.getConstituency());
+		candidate.setVoterId(request.getVoterId());
 
 		Candidate savedCandidate = candidateService.addCandidate(candidate);
-		return new ResponseEntity<Candidate>(savedCandidate, HttpStatus.CREATED);
+		return new ResponseEntity<>(savedCandidate, HttpStatus.CREATED);
 	}
-
+    //localhost:8088/admin/allCandidates
 	@GetMapping("/allCandidates")
 	public List<Candidate> getAllCandidates() {
+		List<Candidate> allCandidates = new ArrayList<>();
 		try {
-			List<Candidate> allExtractedCandidates = candidateService.getAllCandidates();
-			return allExtractedCandidates;
+			allCandidates = candidateService.getAllCandidates();
 		} catch (Exception e) {
-			System.out.println(e);
+			e.printStackTrace();
 		}
-		return null;
-
+		return allCandidates;
 	}
 
 	// localhost:8088/admin/update/1
-	@PutMapping("/update/{Id}")
-	public Candidate updateCandidate(@PathVariable int Id, @RequestBody Candidate candidateDetails) throws Exception {
-		candidateService.getCandidateById(Id);
-		candidateDetails.setId(Id);
-		Candidate updateCandidate = candidateService.addCandidate(candidateDetails);
-		return updateCandidate;
+	@PutMapping("/update/{cId}")
+	public Candidate updateCandidate(@PathVariable int cId, @RequestBody UpdateCandidateRequest request)
+			throws NullException {
+		Candidate existingCandidate = candidateService.getCandidateBycId(cId);
+		existingCandidate.setcId(request.getcId()); // Update specific properties as needed
+
+		return candidateService.addCandidate(existingCandidate);
 	}
 
 	// localhost:8088/admin/delete/1
-	@DeleteMapping("/delete/{searchId}")
-	public void deleteCandidateById(@PathVariable int searchId) {
+	@DeleteMapping("/delete/{searchcId}")
+	public void deleteCandidateById(@PathVariable int searchcId) {
 
 		try {
-			candidateService.deleteCandidateById(searchId);
+			candidateService.deleteCandidateById(searchcId);
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -74,24 +89,45 @@ public class AdminCandidateController {
 	}
 
 	// localhost:8088/admin/id/1
-	@GetMapping("/id/{searchId}")
-	public Candidate getCandidateByID(@PathVariable int searchId) throws Exception {
-		return candidateService.getCandidateById(searchId);
+	@GetMapping("/cId/{searchcId}")
+	public Candidate getCandidateByID(@PathVariable int searchcId) throws NullException {
+		return candidateService.getCandidateBycId(searchcId);
 	}
 
 	// localhost:8088/admin/id?range1=6&range2=7
-	@GetMapping("/id")
+	@GetMapping("/cId")
 	public List<Candidate> getCandidatesBetweenIds(@RequestParam int range1, @RequestParam int range2)
-			throws Exception {
+			throws NullException {
 
 		return candidateService.getCandidatesBetweenIds(range1, range2);
 	}
 
 	// localhost:8088/admin/sort/gujarath
 	@GetMapping("/sort/{constituency}")
-	public List<Candidate> getBySorting() throws Exception {
-		List<Candidate> allSorted = candidateService.SortingCandidatesBasedOnConstituency();
+	public List<Candidate> getBySorting() throws NullException {
+		List<Candidate> allSorted = new ArrayList<>();
+		try {
+			allSorted = candidateService.sortingCandidatesBasedOnConstituency();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		return allSorted;
+	}
+
+	@GetMapping("/voterId/{voterId}")
+	public ResponseEntity<RequiredResponse> getAllDataBasedOnVoterId(@PathVariable int voterId) {
+		logger.info("Fetching data for ID: {}", voterId);
+
+		RequiredResponse requiredResponse = new RequiredResponse();
+
+		Candidate candidate = candidateRepository.findBycId(voterId).get(voterId);
+		requiredResponse.setCandidate(candidate);
+		List<Voter> listofVoters = restTemplate.getForObject("http://Voter/voter/cId/" + voterId, List.class);
+		requiredResponse.setVoter(listofVoters);
+
+		logger.info("Fetched data for ID: {}", voterId);
+
+		return new ResponseEntity<>(requiredResponse, HttpStatus.OK);
 	}
 
 }

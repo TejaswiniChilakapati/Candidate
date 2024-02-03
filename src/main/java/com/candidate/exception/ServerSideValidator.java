@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,23 +18,25 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 
 @ControllerAdvice
 public class ServerSideValidator extends ResponseEntityExceptionHandler {
-	protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException exp,
-			HttpHeaders headers, HttpStatus status, WebRequest request) {
+    private static final Logger validatorLogger = LoggerFactory.getLogger(ServerSideValidator.class);
 
-		System.out.println("\n\n =====>>  Inside ServerSideInsuranceValidator ");
-		Map<String, String> errorMap = new HashMap<>();
+    @Override
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException exp,
+                                                                  HttpHeaders headers, HttpStatus status, WebRequest request) {
 
-		List<ObjectError> errorList = exp.getBindingResult().getAllErrors();
+        validatorLogger.info("\n\n =====>>  Inside ServerSideInsuranceValidator ");
+        Map<String, String> errorMap = new HashMap<>();
 
-		errorList.stream().forEach((e) -> {
-			String propertyName = ((FieldError) e).getField();
-			String errorMsg = e.getDefaultMessage();
+        List<ObjectError> errorList = exp.getBindingResult().getAllErrors();
 
-			errorMap.put(propertyName, errorMsg);
-		});
+        errorList.forEach(e -> {
+            String propertyName = ((FieldError) e).getField();
+            String errorMsg = e.getDefaultMessage();
 
-		return new ResponseEntity<Object>(errorMap, HttpStatus.BAD_REQUEST);
+            errorMap.put(propertyName, errorMsg);
+        });
 
-	}
-
+        return new ResponseEntity<>(errorMap, HttpStatus.BAD_REQUEST);
+    }
 }
+
